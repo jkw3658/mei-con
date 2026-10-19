@@ -155,7 +155,9 @@ window.onGisLoad = function () {
   $('msg').textContent = '「Googleでログイン」を押してください';
 };
 
-$('signin').onclick = $('reload').onclick = () => tokenClient && tokenClient.requestAccessToken({ prompt: '' });
+// ログインは毎回アカウント選択画面を出す（端末の既定アカウントが別でも選べるように）
+$('signin').onclick = () => tokenClient && tokenClient.requestAccessToken({ prompt: 'select_account', login_hint: CFG.LOGIN_HINT || '' });
+$('reload').onclick = () => tokenClient && tokenClient.requestAccessToken({ prompt: '', login_hint: CFG.LOGIN_HINT || '' });
 $('q').addEventListener('input', render);
 $('sort').addEventListener('change', render);
 
