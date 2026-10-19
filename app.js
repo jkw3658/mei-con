@@ -1,7 +1,8 @@
 'use strict';
 
 const CFG = window.APP_CONFIG;
-const SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+const SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly email';
+const HINT_KEY = 'meishi.loginHint';
 const $ = (id) => document.getElementById(id);
 
 // カード上部に専用表示する列。それ以外の列は「詳細」にすべて表示する。
@@ -149,15 +150,35 @@ window.onGisLoad = function () {
   if (!CFG.CLIENT_ID) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CFG.CLIENT_ID, scope: SCOPE,
-    callback: (resp) => resp.access_token ? fetchSheet(resp.access_token) : ($('msg').textContent = 'ログインできませんでした'),
+    callback: (resp) => {
+      if (!resp.access_token) { $('msg').textContent = 'ログインできませんでした'; return; }
+      rememberAccount(resp.access_token);
+      fetchSheet(resp.access_token);
+    },
   });
   $('signin').hidden = false;
+  $('switch').hidden = !getHint();
   $('msg').textContent = '「Googleでログイン」を押してください';
 };
 
-// ログインは毎回アカウント選択画面を出す（端末の既定アカウントが別でも選べるように）
-$('signin').onclick = () => tokenClient && tokenClient.requestAccessToken({ prompt: 'select_account', login_hint: CFG.LOGIN_HINT || '' });
-$('reload').onclick = () => tokenClient && tokenClient.requestAccessToken({ prompt: '', login_hint: CFG.LOGIN_HINT || '' });
+// 一度ログインしたアカウントを端末に覚え、次回からは選択画面なしでそのアカウントを使う
+function getHint() { try { return localStorage.getItem(HINT_KEY) || ''; } catch { return ''; } }
+function setHint(v) { try { v ? localStorage.setItem(HINT_KEY, v) : localStorage.removeItem(HINT_KEY); } catch {} }
+
+async function rememberAccount(token) {
+  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } });
+  if (res.ok) setHint((await res.json()).email || '');
+  $('switch').hidden = !getHint();
+}
+
+function signIn() {
+  if (!tokenClient) return;
+  const hint = getHint();
+  tokenClient.requestAccessToken({ prompt: hint ? '' : 'select_account', login_hint: hint });
+}
+
+$('signin').onclick = $('reload').onclick = signIn;
+$('switch').onclick = () => { setHint(''); signIn(); };
 $('q').addEventListener('input', render);
 $('sort').addEventListener('change', render);
 

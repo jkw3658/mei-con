@@ -1,5 +1,5 @@
 // アプリ本体のみキャッシュ（名刺データはキャッシュしない）
-const CACHE = 'meishi-v2';
+const CACHE = 'meishi-v3';
 const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'config.js', 'manifest.webmanifest', 'icons/icon.svg'];
 
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))));
